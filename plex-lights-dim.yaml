@@ -1,0 +1,143 @@
+blueprint:
+  name: Plex light control
+  description: 'Dim your lights when playing something from Plex.
+
+    This blueprint works very well with Tautulli for Plex and is developed based on this add-on. 
+
+    Your body must include 
+
+    {plex accopunt} ({plex player name}) started 
+    {plex accopunt} ({plex player name}) stopped
+    {plex accopunt} ({plex player name}) paused
+    {plex accopunt} ({plex player name}) resumed
+
+    in order for this blueprint to work.
+
+    The payload of the message must be formatted like
+    {body: resume}
+
+    Configure the message in Tautulli and you are good to go. Just make sure that the body of the messages are correct, and you are including the plex account and player device you want to trigger on. This way you can add more blueprints to control players in each room. 
+  '
+  domain: automation
+  input:
+    light:
+      name: Target light
+      selector:
+        entity:
+          domain: light
+    dim_transition:
+      name: Transistion dimming
+      description: Set the transistion speed of dimming the light
+      default: 2
+      selector:
+        number:
+          min: 0.1
+          max: 10
+          mode: slider
+          step: 0.1
+          unit_of_measurement: s
+    play_brightness:
+      name: Play brightnes
+      description: Brightness when a movie is playing.
+      default: 20
+      selector:
+        number:
+          min: 0.0
+          max: 100.0
+          mode: slider
+          step: 1.0
+          unit_of_measurement: '%'
+    pause_brightness:
+      name: Pause brightness
+      description: Brightness when movie is paused.
+      default: 60
+      selector:
+        number:
+          min: 1.0
+          max: 100.0
+          mode: slider
+          step: 1.0
+          unit_of_measurement: '%'
+    stop_brightness:
+      name: Stop brightness
+      description: Brightness when movie has been stopped or ended.
+      default: 75
+      selector:
+        number:
+          min: 1.0
+          max: 100.0
+          mode: slider
+          step: 1.0
+          unit_of_measurement: '%'
+    topic: 
+      name: MQTT Topic
+      description: The topic used to notify. 
+      default: Tautulli
+    player:
+      name: Player Entity
+      description: Enter the name of the media player entity associated with Plex.
+      selector:
+        text:
+          multiline: false
+    plex_account:
+      name: Plex Account
+      description: Select the Plex account to monitor.
+      selector:
+        text:
+          multiline: false
+trigger:
+  platform: mqtt
+  topic: !input 'topic'
+condition:
+  condition: or
+  conditions:
+    - condition: sun
+      after: sunset
+    - condition: sun
+      before: sunrise
+action:
+- variables:
+    payload: '{{ trigger.payload_json }}'
+    plex_account: !input 'plex_account'
+    player: !input 'player'
+- choose: 
+  - conditions: >-
+      {{ plex_account in payload["body"] and player in payload["body"] and "started playing" in payload["body"] }}
+    sequence:
+    - service: light.turn_on
+      data_template:
+        entity_id: !input 'light'
+        brightness_pct: !input 'play_brightness'
+        transition: !input 'dim_transition'
+  - conditions: >-
+      {{ plex_account in payload["body"] and player in payload["body"] and "paused" in payload["body"] }}
+    sequence:
+    - service: light.turn_on
+      data_template:
+        entity_id: !input 'light'
+        brightness_pct: !input 'pause_brightness'
+        transition: !input 'dim_transition'
+  - conditions: >-
+      {{ plex_account in payload["body"] and player in payload["body"] and "stopped" in payload["body"] }}
+    sequence:
+    - service: light.turn_on
+      data_template:
+        entity_id: !input 'light'
+        brightness_pct: !input 'stop_brightness'
+        transition: !input 'dim_transition'
+  - conditions: >-
+      {{ plex_account in payload["body"] and player in payload["body"] and "resumed" in payload["body"] }}
+    sequence:
+    - service: light.turn_on
+      data_template:
+        entity_id: !input 'light'
+        brightness_pct: !input 'play_brightness'
+        transition: !input 'dim_transition'
+  - conditions: >-
+      {{ plex_account in payload["body"] and player in payload["body"] and "credits" in payload["body"] }}
+    sequence:
+    - service: light.turn_on
+      data_template:
+        entity_id: !input 'light'
+        brightness_pct: !input 'pause_brightness'
+        transition: !input 'dim_transition'
