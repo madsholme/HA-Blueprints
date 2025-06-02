@@ -12,9 +12,11 @@ influx_url = "http://192.168.0.245:8086"
 today = datetime.now(timezone.utc)
 
 # Determine the first and last day of the previous month
-first_day_last_month = today.replace(day=1) - timedelta(days=1)
+first_day_last_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
 first_day_last_month = first_day_last_month.replace(day=1)
-last_day_last_month = today.replace(day=1) - timedelta(days=1)
+last_day_last_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+last_day_last_month = last_day_last_month.replace(hour=23, minute=59, second=0, microsecond=0)
+
 
 # Flux query
 flux_query = f'''
